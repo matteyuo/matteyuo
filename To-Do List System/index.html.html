@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>To‑Do List System</title>
+
+  <!-- Tailwind (utility classes) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body{font-family:'Segoe UI',Roboto,sans-serif}
+    .hidden{display:none}
+    #navClock{font-weight:600;color:#1877f2}
+
+    /* calendar */
+    #calendarWrap{max-width:420px;margin:auto}
+    #calendarHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    #calendarHead button{background:#1877f2;color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:.9rem}
+    #calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+    #calendar div{padding:6px 0;border-radius:4px}
+    #calendar .dow{font-weight:600;background:#f3f4f6}
+    #calendar .today{background:#1877f2;color:#fff;font-weight:600}
+
+    /* calculator */
+    #calcGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+    #calcGrid button{background:#e5e7eb;padding:14px;border-radius:8px;font-size:1.1rem;font-weight:600}
+    #calcDisplay{font-family:monospace;font-size:1.5rem;text-align:right}
+
+    /* dark‑mode overrides */
+    body.dark{background:#1e1e1e;color:#d1d5db}
+    body.dark .bg-white{background:#2d2d2d}
+    body.dark input,body.dark textarea{background:#374151;color:#e5e7eb;border-color:#555}
+    body.dark #calendar .dow{background:#374151}
+    body.dark #calcGrid button{background:#4b5563;color:#f9fafb}
+  </style>
+</head>
+<body>
+
+<!-- ========== LOGIN ========== -->
+<div id="loginPage" class="min-h-screen flex items-center justify-center px-4">
+  <div class="bg-white p-6 rounded shadow space-y-3 w-full max-w-sm">
+    <h1 class="text-center text-2xl font-bold text-[#1877f2]">To‑Do List System</h1>
+    <input id="email" placeholder="Email" class="w-full px-3 py-2 border rounded">
+    <input id="password" type="password" placeholder="Password" class="w-full px-3 py-2 border rounded">
+    <button onclick="login()" class="w-full bg-[#1877f2] text-white py-2 rounded">Log In</button>
+    <p id="loginMsg" class="text-center text-red-600 text-sm"></p>
+  </div>
+</div>
+
+<!-- ========== NAVBAR ========== -->
+<nav id="navbar" class="hidden bg-white shadow px-4 py-3 flex justify-between items-center sticky top-0 z-10">
+  <div class="flex items-center gap-4">
+    <h1 class="font-bold text-xl text-[#1877f2]">To‑Do List System</h1>
+    <span id="navClock"></span>
+  </div>
+  <div class="space-x-4">
+    <button onclick="navigate('home')">Home</button>
+    <button onclick="navigate('calendar')">Calendar</button>
+    <button onclick="navigate('profile')">Profile</button>
+    <button onclick="navigate('calculator')">Calculator</button>
+    <button onclick="navigate('settings')">Settings</button>
+    <button onclick="toggleTheme()">🌓</button>
+    <button onclick="logout()" class="text-red-600">Logout</button>
+  </div>
+</nav>
+
+<!-- ========== HOME ========== -->
+<div id="homePage" class="hidden max-w-5xl mx-auto mt-6 px-4 space-y-6">
+  <!-- Welcome -->
+  <section class="bg-white p-6 rounded shadow">
+    <h2 id="welcome" class="text-xl font-semibold mb-4">Welcome!</h2>
+    <div class="flex flex-col md:flex-row gap-4 items-center">
+      <img id="homePhoto" class="h-24 w-24 rounded-full object-cover border hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm flex-1">
+        <p><strong>Name:</strong> <span id="homeName">-</span></p>
+        <p><strong>Email:</strong> <span id="homeEmail">-</span></p>
+        <p><strong>Tasks:</strong> <span id="taskCount">0</span></p>
+        <p><strong>Reminders:</strong> <span id="remCount">0</span></p>
+        <p><strong>Date:</strong> <span id="todayDate"></span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reminders -->
+  <section class="bg-white p-6 rounded shadow">
+    <h2 class="text-lg font-semibold mb-4">Reminders</h2>
+    <div class="flex flex-col md:flex-row gap-2 mb-3">
+      <input id="reminderText" placeholder="Reminder..." class="flex-1 px-3 py-2 border rounded">
+      <input id="reminderTime" type="datetime-local" class="px-3 py-2 border rounded">
+      <button onclick="setReminder()" class="bg-[#1877f2] text-white px-4 py-2 rounded">Set</button>
+    </div>
+    <ul id="reminderList" class="space-y-2 text-sm"></ul>
+  </section>
+
+  <!-- To‑Do List -->
+  <section class="bg-white p-6 rounded shadow">
+    <h2 class="text-lg font-semibold mb-4">To‑Do List</h2>
+    <input id="taskInput" placeholder="Add a new task" class="w-full mb-3 px-3 py-2 border rounded">
+    <button onclick="addTask()" class="bg-[#1877f2] text-white px-4 py-2 rounded mb-4">Add Task</button>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div><h3 class="text-center font-semibold text-blue-600 mb-2">To‑Do</h3><ul id="todoList" class="space-y-2 p-3 rounded border bg-gray-50 min-h-[100px]"></ul></div>
+      <div><h3 class="text-center font-semibold text-yellow-600 mb-2">Working</h3><ul id="workingList" class="space-y-2 p-3 rounded border bg-yellow-50 min-h-[100px]"></ul></div>
+      <div><h3 class="text-center font-semibold text-green-600 mb-2">Done</h3><ul id="doneList" class="space-y-2 p-3 rounded border bg-green-50 min-h-[100px]"></ul></div>
+    </div>
+  </section>
+</div>
+
+<!-- ========== CALENDAR ========== -->
+<div id="calendarPage" class="hidden max-w-xl mx-auto mt-6 px-4">
+  <div class="bg-white p-6 rounded shadow">
+    <div id="calendarWrap">
+      <div id="calendarHead">
+        <button onclick="changeMonth(-1)">&lt;</button>
+        <h3 id="calTitle" class="font-semibold"></h3>
+        <button onclick="changeMonth(1)">&gt;</button>
+      </div>
+      <div id="calendar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PROFILE ========== -->
+<div id="profilePage" class="hidden max-w-lg mx-auto mt-6 px-4">
+  <div class="bg-white p-6 rounded shadow space-y-3">
+    <h2 class="text-lg font-semibold">Student Profile</h2>
+    <input id="profilePhoto" type="file" accept="image/*" onchange="previewPic(event)" class="block">
+    <img id="profileImg" class="h-24 w-24 rounded-full object-cover border hidden">
+    <input id="pName" placeholder="Name" class="w-full px-3 py-2 border rounded">
+    <input id="pEmail" placeholder="Email" class="w-full px-3 py-2 border rounded">
+    <input id="pAge" type="number" placeholder="Age" class="w-full px-3 py-2 border rounded">
+    <input id="pCourse" placeholder="Course/Year" class="w-full px-3 py-2 border rounded">
+    <input id="pSchool" placeholder="School/University" class="w-full px-3 py-2 border rounded">
+    <button onclick="saveProfile()" class="bg-[#1877f2] text-white px-4 py-2 rounded">Save</button>
+    <p id="saveMsg" class="text-green-600 hidden">Saved!</p>
+  </div>
+</div>
+
+<!-- ========== CALCULATOR ========== -->
+<div id="calculatorPage" class="hidden max-w-sm mx-auto mt-6 px-4">
+  <div class="bg-white p-6 rounded shadow space-y-4">
+    <h2 class="text-lg font-semibold">Calculator</h2>
+    <input id="calcDisplay" readonly class="w-full px-3 py-2 border rounded text-right" value="0">
+    <div id="calcGrid">
+      <!-- Row 1 -->
+      <button onclick="press('7')">7</button><button onclick="press('8')">8</button><button onclick="press('9')">9</button><button onclick="press('/')">÷</button>
+      <!-- Row 2 -->
+      <button onclick="press('4')">4</button><button onclick="press('5')">5</button><button onclick="press('6')">6</button><button onclick="press('*')">×</button>
+      <!-- Row 3 -->
+      <button onclick="press('1')">1</button><button onclick="press('2')">2</button><button onclick="press('3')">3</button><button onclick="press('-')">−</button>
+      <!-- Row 4 -->
+      <button onclick="press('0')">0</button><button onclick="press('.')">.</button><button onclick="calcEq()">=</button><button onclick="press('+')">+</button>
+      <!-- Clear Row -->
+      <button onclick="calcClear()" class="col-span-4 bg-red-500 text-white">C</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SETTINGS ========== -->
+<div id="settingsPage" class="hidden max-w-lg mx-auto mt-6 px-4">
+  <div class="bg-white p-6 rounded shadow space-y-4">
+    <h2 class="text-lg font-semibold">Settings</h2>
+    <div>
+      <p class="font-semibold">Theme</p>
+      <label><input type="radio" name="theme" value="light" onchange="setTheme('light')"> Light</label>
+      <label class="ml-4"><input type="radio" name="theme" value="dark" onchange="setTheme('dark')"> Dark</label>
+    </div>
+    <div>
+      <p class="font-semibold">Data</p>
+      <button onclick="clearData()" class="bg-red-500 text-white px-4 py-2 rounded">Clear Local Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCRIPT ========== -->
+<script>
+/* Storage keys */
+const LS = { tasks:'tasks', rem:'rem', prof:'prof', theme:'theme' };
+
+/* Demo users */
+const users={
+  'user@cvsu.edu.ph':'123456',
+  'admin@cvsu.edu.ph':'admin123'
+};
+
+/* Data */
+let tasks = JSON.parse(localStorage.getItem(LS.tasks)||'[]');
+let reminders = JSON.parse(localStorage.getItem(LS.rem)||'[]');
+
+/* ---------- LOGIN ---------- */
+function login(){
+  const e=email.value.trim(), p=password.value.trim();
+  if(users[e]===p){ init(); }
+  else loginMsg.textContent='Invalid credentials.';
+}
+function logout(){
+  if(confirm('Logout?')) location.reload();
+}
+
+/* ---------- INIT ---------- */
+function init(){
+  loginPage.classList.add('hidden');
+  navbar.classList.remove('hidden');
+  todayDate.textContent = new Date().toDateString();
+  startClock(); initTheme();
+  loadProfile(); renderTasks(); renderReminders(); buildCalendar();
+  navigate('home');
+}
+
+/* ---------- CLOCK ---------- */
+function startClock(){ setInterval(()=>navClock.textContent=new Date().toLocaleTimeString(),1000); }
+
+/* ---------- THEME ---------- */
+function toggleTheme(){ const d=document.body.classList.toggle('dark'); localStorage.setItem(LS.theme,d?'dark':'light'); }
+function setTheme(t){ document.body.classList.toggle('dark',t==='dark'); localStorage.setItem(LS.theme,t); }
+function initTheme(){ const t=localStorage.getItem(LS.theme); if(t==='dark') document.body.classList.add('dark'); document.querySelectorAll('input[name=\"theme\"]').forEach(r=>r.checked=(r.value===t)); }
+
+/* ---------- NAV ---------- */
+function navigate(page){
+  ['home','calendar','profile','calculator','settings']
+    .forEach(id=>document.getElementById(id+'Page').classList.add('hidden'));
+  document.getElementById(page+'Page').classList.remove('hidden');
+}
+
+/* ---------- TASKS ---------- */
+function saveTasks(){ localStorage.setItem(LS.tasks,JSON.stringify(tasks)); }
+function addTask(){
+  const t=taskInput.value.trim(); if(!t) return;
+  tasks.push({id:Date.now(),text:t,state:'todo'}); saveTasks(); renderTasks(); taskInput.value='';
+}
+function moveTask(id){
+  const t=tasks.find(x=>x.id===id);
+  t.state = t.state==='todo' ? 'working' : 'done';
+  saveTasks(); renderTasks();
+}
+function delTask(id){ tasks=tasks.filter(x=>x.id!==id); saveTasks(); renderTasks(); }
+function renderTasks(){
+  ['todo','working','done'].forEach(c=>document.getElementById(c+'List').innerHTML='');
+  tasks.forEach(t=>{
+    const li=document.createElement('li');
+    li.className='flex justify-between items-center bg-white p-2 rounded shadow';
+    li.innerHTML = `${t.text}<div>${t.state!=='done'?`<button onclick=\"moveTask(${t.id})\" class=\"mr-2\">▶</button>`:''}<button onclick=\"delTask(${t.id})\">🗑</button></div>`;
+    document.getElementById(t.state+'List').appendChild(li);
+  });
+  taskCount.textContent=tasks.length;
+}
+
+/* ---------- REMINDERS ---------- */
+function saveRem(){ localStorage.setItem(LS.rem,JSON.stringify(reminders)); }
+function setReminder(){
+  if(!reminderText.value.trim()||!reminderTime.value) return;
+  reminders.push({id:Date.now(),text:reminderText.value.trim(),time:reminderTime.value});
+  saveRem(); renderReminders(); reminderText.value=''; reminderTime.value='';
+}
+function delReminder(id){ reminders=reminders.filter(r=>r.id!==id); saveRem(); renderReminders(); }
+function renderReminders(){
+  reminderList.innerHTML='';
+  reminders.forEach(r=>{
+    const li=document.createElement('li');
+    li.className='flex justify-between bg-blue-50 p-2 rounded';
+    li.innerHTML=`${r.text}<span class=\"text-xs\">${new Date(r.time).toLocaleString()}</span><button onclick=\"delReminder(${r.id})\">🗑</button>`;
+    reminderList.appendChild(li);
+  });
+  remCount.textContent=reminders.length;
+}
+setInterval(()=>{const now=Date.now();reminders.forEach(r=>{if(Date.parse(r.time)<=now){alert('Reminder: '+r.text);delReminder(r.id);}});},60000);
+
+/* ---------- CALENDAR ---------- */
+let calDate=new Date();
+function buildCalendar(){
+  const y=calDate.getFullYear(), m=calDate.getMonth();
+  calTitle.textContent = calDate.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  calendar.innerHTML='';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>calendar.innerHTML+=`<div class=\"dow\">${d}</div>`);
+  const start=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+  for(let i=0;i<start;i++) calendar.innerHTML+='<div></div>';
+  for(let d=1;d<=days;d++){const cell=document.createElement('div');if(d===new Date().getDate()&&m===new Date().getMonth()&&y===new Date().getFullYear()) cell.className='today';cell.textContent=d;calendar.appendChild(cell);}
+}
+function changeMonth(n){ calDate.setMonth(calDate.getMonth()+n); buildCalendar(); }
+
+/* ---------- PROFILE ---------- */
+function previewPic(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=ev=>{profileImg.src=ev.target.result;profileImg.classList.remove('hidden');homePhoto.src=ev.target.result;homePhoto.classList.remove('hidden');}; r.readAsDataURL(f);
+}
+function saveProfile(){
+  const prof={name:pName.value,email:pEmail.value,age:pAge.value,course:pCourse.value,school:pSchool.value,photo:profileImg.src};
+  localStorage.setItem(LS.prof,JSON.stringify(prof));
+  loadProfile(); saveMsg.classList.remove('hidden'); setTimeout(()=>saveMsg.classList.add('hidden'),1500);
+}
+function loadProfile(){
+  const d=JSON.parse(localStorage.getItem(LS.prof)||'{}');
+  if(!Object.keys(d).length) return;
+  pName.value=d.name||''; pEmail.value=d.email||''; pAge.value=d.age||''; pCourse.value=d.course||''; pSchool.value=d.school||'';
+  welcome.textContent='Welcome, '+(d.name||'Student')+'!';
+  homeName.textContent=d.name||'-'; homeEmail.textContent=d.email||'-';
+  if(d.photo){profileImg.src=d.photo;profileImg.classList.remove('hidden');homePhoto.src=d.photo;homePhoto.classList.remove('hidden');}
+}
+
+/* ---------- SETTINGS ---------- */
+function clearData(){
+  if(confirm('Clear tasks & reminders?')){
+    localStorage.removeItem(LS.tasks); localStorage.removeItem(LS.rem);
+    tasks=[]; reminders=[]; renderTasks(); renderReminders();
+  }
+}
+
+/* ---------- CALCULATOR ---------- */
+let calcBuf='0';
+function press(ch){
+  if(calcBuf==='0'&&ch!=='0'&&ch!=='.') calcBuf=ch;
+  else calcBuf+=ch;
+  calcDisplay.value=calcBuf;
+}
+function calcEq(){
+  try{ calcBuf = String(eval(calcBuf)); }
+  catch{ calcBuf='Error'; }
+  calcDisplay.value=calcBuf;
+}
+function calcClear(){ calcBuf='0'; calcDisplay.value=calcBuf; }
+
+/* ---------- DOM refs ---------- */
+const $=id=>document.getElementById(id);
+const todayDate=$('todayDate');
+
+/* ---------- Auto‑theme ---------- */
+if(localStorage.getItem(LS.theme)==='dark') document.body.classList.add('dark');
+</script>
+</body>
+</html>
+
+
+
